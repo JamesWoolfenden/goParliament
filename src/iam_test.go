@@ -17,6 +17,9 @@ func TestPolicyDocument_UnmarshalJSON(t *testing.T) {
 		b []byte
 	}
 
+	basic, _ := os.ReadFile("../iam-tests/basic.json")
+	dupe, _ := os.ReadFile("../iam-tests/basic-duplicate-action.json")
+	notPretty, _ := os.ReadFile("../iam-tests/basic-notpretty.json")
 	withID, _ := os.ReadFile("../iam-tests/basic-withid.json")
 	withIDSquare, _ := os.ReadFile("../iam-tests/basic-withidsquare.json")
 	withCondition, _ := os.ReadFile("../iam-tests/basic-withcondition.json")
@@ -28,6 +31,9 @@ func TestPolicyDocument_UnmarshalJSON(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
+		{"basic", fields{}, args{basic}, false},
+		{"dupe", fields{}, args{dupe}, true},
+		{"not-pretty", fields{}, args{notPretty}, false},
 		{"withID", fields{}, args{withID}, false},
 		{"withSID", fields{}, args{withSid}, false},
 		{"withCondition", fields{}, args{withCondition}, false},
