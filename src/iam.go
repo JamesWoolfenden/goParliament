@@ -1,4 +1,4 @@
-package parle
+package parlez
 
 import (
 	"bytes"
@@ -9,13 +9,21 @@ import (
 
 type PolicyDocument struct {
 	Version   string           `json:"Version"`
+	Id        string           `json:"Id"`
 	Statement []StatementEntry `json:"Statement"`
 }
 
 type StatementEntry struct {
-	Effect   string   `json:"Effect"`
-	Action   []string `json:"Action"`
-	Resource string   `json:"Resource"`
+	Effect    string     `json:"Effect"`
+	Action    []string   `json:"Action"`
+	Resource  string     `json:"Resource"`
+	Condition *Condition `json:"Condition,omitempty"`
+}
+
+type Condition struct {
+	StringLike struct {
+		S3Prefix []string `json:"s3:prefix,omitempty"`
+	} `json:"StringLike,omitempty"`
 }
 
 func (policyDocument *PolicyDocument) UnmarshalJSON(b []byte) error {
@@ -34,40 +42,22 @@ func (policyDocument *PolicyDocument) UnmarshalJSON(b []byte) error {
 	}
 
 	policyDocument.Version = m["Version"].(string)
+	policyDocument.Id = m["Id"].(string)
+
 	var entries []StatementEntry
 
 	statements, ok := m["Statement"].([]interface{})
 	if ok {
 		for _, statement := range statements {
-			entries = append(entries, statement.(StatementEntry))
+			entry := NewStatement(statement.(map[string]interface{}))
+			entries = append(entries, entry)
 		}
+
 		policyDocument.Statement = entries
 	} else {
 		basic := m["Statement"].(map[string]interface{})
 
-		var entry StatementEntry
-
-		if basic["Action"] != nil {
-			Actions, ok := basic["Action"].([]interface{})
-			if ok {
-				for _, action := range Actions {
-					entry.Action = append(entry.Action, action.(string))
-				}
-			} else {
-				entry.Action = append(entry.Action, basic["Action"].(string))
-			}
-
-		}
-
-		value, ok := basic["Effect"]
-		if ok {
-			entry.Effect = value.(string)
-		}
-
-		value, ok = basic["Resource"]
-		if ok {
-			entry.Resource = value.(string)
-		}
+		entry := NewStatement(basic)
 
 		policyDocument.Statement = append(policyDocument.Statement, entry)
 	}
@@ -86,9 +76,35 @@ func (policyDocument *PolicyDocument) UnmarshalJSON(b []byte) error {
 		log.Print(string(buffer.Bytes()))
 		log.Print("is not equal to Imported:")
 		log.Printf(string(test))
-		return fmt.Errorf("json import failure")
+		return fmt.Errorf("json import parsing failure detected")
 	}
-	log.Print(result)
 
 	return nil
+}
+
+func NewStatement(basic map[string]interface{}) StatementEntry {
+	var entry StatementEntry
+
+	if basic["Action"] != nil {
+		Actions, ok := basic["Action"].([]interface{})
+		if ok {
+			for _, action := range Actions {
+				entry.Action = append(entry.Action, action.(string))
+			}
+		} else {
+			entry.Action = append(entry.Action, basic["Action"].(string))
+		}
+
+	}
+
+	value, ok := basic["Effect"]
+	if ok {
+		entry.Effect = value.(string)
+	}
+
+	value, ok = basic["Resource"]
+	if ok {
+		entry.Resource = value.(string)
+	}
+	return entry
 }

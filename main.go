@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	parle "goParliament/src"
+	parlez "goParliament/src"
 	"log"
 	"os"
 )
@@ -13,7 +13,7 @@ func main() {
 	// read our opened jsonFile as a byte array.
 	byteValue, _ := os.ReadFile(jsonFile)
 
-	Policy := parle.PolicyDocument{}
+	Policy := parlez.PolicyDocument{}
 
 	err := json.Unmarshal(byteValue, &Policy)
 
