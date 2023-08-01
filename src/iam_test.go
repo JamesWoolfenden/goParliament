@@ -20,6 +20,7 @@ func TestPolicyDocument_UnmarshalJSON(t *testing.T) {
 	withID, _ := os.ReadFile("../iam-tests/basic-withid.json")
 	withIDSquare, _ := os.ReadFile("../iam-tests/basic-withidsquare.json")
 	withCondition, _ := os.ReadFile("../iam-tests/basic-withcondition.json")
+	withSid, _ := os.ReadFile("../iam-tests/basic-withsid.json")
 
 	tests := []struct {
 		name    string
@@ -28,8 +29,9 @@ func TestPolicyDocument_UnmarshalJSON(t *testing.T) {
 		wantErr bool
 	}{
 		{"withID", fields{}, args{withID}, false},
+		{"withSID", fields{}, args{withSid}, false},
 		{"withCondition", fields{}, args{withCondition}, false},
-		{"todo", fields{}, args{withIDSquare}, true},
+		{"todo", fields{}, args{withIDSquare}, false},
 	}
 
 	for _, tt := range tests {

@@ -5,19 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"reflect"
 )
 
 type PolicyDocument struct {
 	Version   string           `json:"Version"`
-	Id        string           `json:"Id"`
+	Id        string           `json:"Id,omitempty"`
 	Statement []StatementEntry `json:"Statement"`
 }
 
 type StatementEntry struct {
-	Effect    string     `json:"Effect"`
-	Action    []string   `json:"Action"`
-	Resource  string     `json:"Resource"`
-	Condition *Condition `json:"Condition,omitempty"`
+	Sid        *string     `json:"Sid,omitempty"`
+	Effect     string      `json:"Effect"`
+	Action     interface{} `json:"Action"`
+	NotActions interface{} `json:"NotActions,omitempty"`
+	Resource   interface{} `json:"Resource,omitempty"`
+	Condition  *Condition  `json:"Condition,omitempty"`
 }
 
 type Condition struct {
@@ -42,7 +45,12 @@ func (policyDocument *PolicyDocument) UnmarshalJSON(b []byte) error {
 	}
 
 	policyDocument.Version = m["Version"].(string)
-	policyDocument.Id = m["Id"].(string)
+
+	Id, ok := m["Id"].(string)
+
+	if ok && Id != "" {
+		policyDocument.Id = Id
+	}
 
 	var entries []StatementEntry
 
@@ -68,9 +76,10 @@ func (policyDocument *PolicyDocument) UnmarshalJSON(b []byte) error {
 	if err := json.Compact(buffer, b); err != nil {
 		fmt.Println(err)
 	}
-	result := bytes.Compare(buffer.Bytes(), test)
 
-	if result != 0 {
+	result := reflect.DeepEqual(buffer.Bytes(), test)
+
+	if !result {
 		log.Print("*** Json Mismatch error ***")
 		log.Print("Original:")
 		log.Print(string(buffer.Bytes()))
@@ -85,26 +94,21 @@ func (policyDocument *PolicyDocument) UnmarshalJSON(b []byte) error {
 func NewStatement(basic map[string]interface{}) StatementEntry {
 	var entry StatementEntry
 
-	if basic["Action"] != nil {
-		Actions, ok := basic["Action"].([]interface{})
+	if basic["Sid"] != nil {
+		Sid, ok := basic["Sid"].(string)
 		if ok {
-			for _, action := range Actions {
-				entry.Action = append(entry.Action, action.(string))
-			}
-		} else {
-			entry.Action = append(entry.Action, basic["Action"].(string))
+			entry.Sid = &Sid
 		}
-
 	}
 
-	value, ok := basic["Effect"]
+	entry.Action = basic["Action"]
+
+	value, ok := basic["Effect"].(string)
 	if ok {
-		entry.Effect = value.(string)
+		entry.Effect = value
 	}
 
-	value, ok = basic["Resource"]
-	if ok {
-		entry.Resource = value.(string)
-	}
+	entry.Resource = basic["Resource"]
+
 	return entry
 }
